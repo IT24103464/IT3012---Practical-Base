@@ -2,6 +2,8 @@
 import random
 import tkinter as tk
 
+from agent import ModelBasedAgent, SimpleReflexAgent
+
 
 class VisualGridHuntGame:
     """A flexible Pacman-style grid environment with support for configurable opponents and larger scales."""
@@ -10,6 +12,7 @@ class VisualGridHuntGame:
         self.width = width
         self.height = height
         self.agent_pos = [0, 0]  # Starting position (x, y)
+        self.agent_facing = "Up"
 
         if custom_walls is not None:
             self.walls = set(custom_walls)
@@ -49,44 +52,80 @@ class VisualGridHuntGame:
         self.collision = False
 
     def get_percept(self) -> dict:
+        direction_vectors = {
+            'Up': (0, 1),
+            'Right': (1, 0),
+            'Down': (0, -1),
+            'Left': (-1, 0),
+        }
+
+        dx, dy = direction_vectors[self.agent_facing]
+        front_x = self.agent_pos[0] + dx
+        front_y = self.agent_pos[1] + dy
+        front_position = (front_x, front_y)
+
+        outside_grid = (
+            front_x < 0
+            or front_x >= self.width
+            or front_y < 0
+            or front_y >= self.height
+        )
+
         return {
-            'agent_pos': list(self.agent_pos),
-            'opponent_positions': [list(op) for op in self.opponents],
-            'smells_food': tuple(self.agent_pos) in self.food_positions,
-            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,
-            'hit_wall': tuple(self.agent_pos) in self.walls,
-            'collision': self.collision,
-            'score': self.score,
-            'remaining_food': len(self.food_positions)
+            'wall_ahead': outside_grid or front_position in self.walls,
+            'food_here': tuple(self.agent_pos) in self.food_positions,
         }
 
     def execute_action(self, action: str):
         self.steps += 1
-        new_pos = list(self.agent_pos)
 
-        if action == 'Up':
-            new_pos[1] = min(self.height - 1, new_pos[1] + 1)
-        elif action == 'Down':
-            new_pos[1] = max(0, new_pos[1] - 1)
-        elif action == 'Left':
-            new_pos[0] = max(0, new_pos[0] - 1)
-        elif action == 'Right':
-            new_pos[0] = min(self.width - 1, new_pos[0] + 1)
+        directions = ['Up', 'Right', 'Down', 'Left']
+        direction_vectors = {
+            'Up': (0, 1),
+            'Right': (1, 0),
+            'Down': (0, -1),
+            'Left': (-1, 0),
+        }
 
-        if tuple(new_pos) in self.walls:
-            self.score -= 5
-        else:
-            self.agent_pos = new_pos
+        if action == 'Suck':
+            tuple_pos = tuple(self.agent_pos)
+
+            if tuple_pos in self.food_positions:
+                self.food_positions.remove(tuple_pos)
+                self.score += 20
+
+        elif action == 'TurnLeft':
+            current_index = directions.index(self.agent_facing)
+            self.agent_facing = directions[(current_index - 1) % len(directions)]
+
+        elif action == 'TurnRight':
+            current_index = directions.index(self.agent_facing)
+            self.agent_facing = directions[(current_index + 1) % len(directions)]
+
+        elif action == 'MoveForward':
+            dx, dy = direction_vectors[self.agent_facing]
+            new_pos = [
+                self.agent_pos[0] + dx,
+                self.agent_pos[1] + dy,
+            ]
+
+            outside_grid = (
+                new_pos[0] < 0
+                or new_pos[0] >= self.width
+                or new_pos[1] < 0
+                or new_pos[1] >= self.height
+            )
+
+            if outside_grid or tuple(new_pos) in self.walls:
+                self.score -= 5
+            else:
+                self.agent_pos = new_pos
 
         tuple_pos = tuple(self.agent_pos)
 
         # Practical 01: Apply a severe penalty when the agent steps on a toxic trap
         if tuple_pos in self.toxic_traps:
             self.score -= 15
-
-        if tuple_pos in self.food_positions:
-            self.food_positions.remove(tuple_pos)
-            self.score += 20
 
         for op in self.opponents:
             move = random.choice(['Up', 'Down', 'Left', 'Right', 'Stay'])
@@ -104,7 +143,7 @@ class VisualGridHuntGame:
                 self.collision = True
 
     def is_done(self) -> bool:
-        return len(self.food_positions) == 0 or self.steps >= 60 or self.collision
+        return len(self.food_positions) == 0 or self.steps >= 300 or self.collision
 
 
 class GridGameGUI:
@@ -116,6 +155,12 @@ class GridGameGUI:
 
         self.env = VisualGridHuntGame(width=width, height=height, num_food=num_food, num_opponents=num_opponents,
                                       custom_walls=walls)
+
+        # Step 1.2: Use the Simple Reflex Agent.
+        # self.agent = SimpleReflexAgent()
+
+        # Step 1.3: Comment the line above and uncomment this line.
+        self.agent = ModelBasedAgent()
 
         # Dynamically calculate cell size so the total canvas fits nicely within a 600x600 window ceiling
         max_canvas_dim = 600
@@ -193,7 +238,8 @@ class GridGameGUI:
 
         def step():
             if not self.env.is_done():
-                action = random.choice(['Up', 'Down', 'Left', 'Right'])
+                percept = self.env.get_percept()
+                action = self.agent.sense_and_act(percept)
                 self.env.execute_action(action)
 
                 self.draw_grid()
