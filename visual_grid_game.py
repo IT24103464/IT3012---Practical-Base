@@ -26,6 +26,15 @@ class VisualGridHuntGame:
             if pos_tuple != (0, 0) and pos_tuple not in self.walls:
                 self.food_positions.add(pos_tuple)
 
+        # Practical 01: Generate toxic traps while avoiding the start, walls, and food
+        self.toxic_traps = set()
+        while len(self.toxic_traps) < 3:
+            tx = random.randint(0, self.width - 1)
+            ty = random.randint(0, self.height - 1)
+            trap_pos = (tx, ty)
+            if trap_pos != (0, 0) and trap_pos not in self.walls and trap_pos not in self.food_positions:
+                self.toxic_traps.add(trap_pos)
+
         # Generate adversarial opponents
         self.opponents = []
         while len(self.opponents) < num_opponents:
@@ -44,6 +53,7 @@ class VisualGridHuntGame:
             'agent_pos': list(self.agent_pos),
             'opponent_positions': [list(op) for op in self.opponents],
             'smells_food': tuple(self.agent_pos) in self.food_positions,
+            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,
             'hit_wall': tuple(self.agent_pos) in self.walls,
             'collision': self.collision,
             'score': self.score,
@@ -69,6 +79,11 @@ class VisualGridHuntGame:
             self.agent_pos = new_pos
 
         tuple_pos = tuple(self.agent_pos)
+
+        # Practical 01: Apply a severe penalty when the agent steps on a toxic trap
+        if tuple_pos in self.toxic_traps:
+            self.score -= 15
+
         if tuple_pos in self.food_positions:
             self.food_positions.remove(tuple_pos)
             self.score += 20
@@ -145,6 +160,19 @@ class GridGameGUI:
             y1 = (self.env.height - 1 - fy) * self.cell_size + offset
             self.canvas.create_oval(x1, y1, x1 + self.cell_size * 0.5, y1 + self.cell_size * 0.5, fill="#f59e0b",
                                     outline="#d97706")
+
+        # Practical 01: Draw toxic traps as purple diamond shapes
+        for tx, ty in self.env.toxic_traps:
+            center_x = tx * self.cell_size + self.cell_size / 2
+            center_y = (self.env.height - 1 - ty) * self.cell_size + self.cell_size / 2
+            radius = self.cell_size * 0.28
+            self.canvas.create_polygon(
+                center_x, center_y - radius,
+                center_x + radius, center_y,
+                center_x, center_y + radius,
+                center_x - radius, center_y,
+                fill="#9333ea", outline="#6b21a8"
+            )
 
         for ox, oy in self.env.opponents:
             offset = self.cell_size * 0.2
