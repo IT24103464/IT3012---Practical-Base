@@ -74,7 +74,11 @@ class VisualGridHuntGame:
         return {
             'wall_ahead': outside_grid or front_position in self.walls,
             'food_here': tuple(self.agent_pos) in self.food_positions,
+            'grid_size': (self.width, self.height),
+            'walls': list(self.walls),
+            'all_food': list(self.food_positions),
         }
+
 
     def execute_action(self, action: str):
         self.steps += 1
