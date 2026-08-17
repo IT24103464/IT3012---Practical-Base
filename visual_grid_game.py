@@ -2,7 +2,7 @@
 import random
 import tkinter as tk
 
-from agent import ModelBasedAgent, SimpleReflexAgent
+from agent import ModelBasedAgent, SimpleReflexAgent, SearchAgent
 
 
 class VisualGridHuntGame:
@@ -77,6 +77,7 @@ class VisualGridHuntGame:
             'grid_size': (self.width, self.height),
             'walls': list(self.walls),
             'all_food': list(self.food_positions),
+            'agent_pos': tuple(self.agent_pos),
         }
 
 
@@ -97,6 +98,25 @@ class VisualGridHuntGame:
             if tuple_pos in self.food_positions:
                 self.food_positions.remove(tuple_pos)
                 self.score += 20
+
+        elif action in direction_vectors:
+            dx, dy = direction_vectors[action]
+            new_pos = [
+                self.agent_pos[0] + dx,
+                self.agent_pos[1] + dy,
+            ]
+
+            outside_grid = (
+                new_pos[0] < 0
+                or new_pos[0] >= self.width
+                or new_pos[1] < 0
+                or new_pos[1] >= self.height
+            )
+
+            if outside_grid or tuple(new_pos) in self.walls:
+                self.score -= 5
+            else:
+                self.agent_pos = new_pos
 
         elif action == 'TurnLeft':
             current_index = directions.index(self.agent_facing)
@@ -164,7 +184,9 @@ class GridGameGUI:
         # self.agent = SimpleReflexAgent()
 
         # Step 1.3: Comment the line above and uncomment this line.
-        self.agent = ModelBasedAgent()
+        # self.agent = ModelBasedAgent()
+
+        self.agent = SearchAgent()
 
         # Dynamically calculate cell size so the total canvas fits nicely within a 600x600 window ceiling
         max_canvas_dim = 600
