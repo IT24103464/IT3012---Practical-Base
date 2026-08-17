@@ -77,8 +77,42 @@ class SearchAgent:
                 frontier.append((next_position, new_path))
         return None
 
-    def ucs_search(self):
-        pass
+    def ucs_search(self, start, goal, walls, grid_size):
+        frontier = []
+        reached = set()
+        heapq.heappush(frontier, (0, start, []))
+        reached.add(start)
+        directions = {
+                'Up': (0, 1),
+                'Right': (1, 0),
+                'Down': (0, -1),
+                'Left': (-1, 0),
+            }
+        while frontier:
+            current_cost, current_position, path = heapq.heappop(frontier)
+            if current_position == goal:
+                return path
+            for action, (dx, dy) in directions.items():
+                next_position = (
+                    current_position[0] + dx,
+                    current_position[1] + dy
+                )
+                if (
+                    next_position[0] < 0
+                    or next_position[0] >= grid_size[0]
+                    or next_position[1] < 0
+                    or next_position[1] >= grid_size[1]
+                ):
+                    continue
+                if next_position in walls:
+                    continue
+                if next_position in reached:
+                    continue
+                reached.add(next_position)
+                new_cost = current_cost + 1
+                new_path = path + [action]
+                heapq.heappush(frontier, (new_cost, next_position, new_path)) 
+        return None
 
 class SimpleReflexAgent:
     """Uses only the current percept and stores no history."""
