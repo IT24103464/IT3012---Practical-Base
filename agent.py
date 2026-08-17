@@ -5,6 +5,10 @@ import heapq
 
 
 class SearchAgent:
+    def __init__(self):
+        self.plan = []
+        self.active_algo = 'BFS'
+
     def bfs_search(self, start, goal, walls, grid_size):
         frontier = deque()
         reached = set()
@@ -112,6 +116,38 @@ class SearchAgent:
                 new_cost = current_cost + 1
                 new_path = path + [action]
                 heapq.heappush(frontier, (new_cost, next_position, new_path)) 
+        return None
+
+    def sense_and_act(self, percept):
+        if percept['food_here']:
+            return 'Suck'
+
+        if not self.plan:
+            start = percept['agent_pos']
+            walls = percept['walls']
+            grid_size = percept['grid_size']
+            all_food = percept['all_food']
+
+            if not all_food:
+                return None
+
+            goal = min(
+                all_food,
+                key=lambda food: abs(food[0] - start[0]) + abs(food[1] - start[1])
+            )
+
+            if self.active_algo == 'BFS':
+                self.plan = self.bfs_search(start, goal, walls, grid_size)
+
+            elif self.active_algo == 'DFS':
+                self.plan = self.dfs_search(start, goal, walls, grid_size)
+
+            elif self.active_algo == 'UCS':
+                self.plan = self.ucs_search(start, goal, walls, grid_size)
+
+        if self.plan:
+            return self.plan.pop(0)
+
         return None
 
 class SimpleReflexAgent:
