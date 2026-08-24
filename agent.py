@@ -8,7 +8,7 @@ import math
 class SearchAgent:
     def __init__(self):
         self.plan = []
-        self.active_algo = 'BFS'
+        self.active_algo = 'AStar'
     
         # self.active_algo = 'DFS'
     
@@ -163,12 +163,62 @@ class SearchAgent:
 
             elif self.active_algo == 'UCS':
                 self.plan = self.ucs_search(start, goal, walls, grid_size)
+            
+            elif self.active_algo == 'AStar':
+                self.plan = self.astar_search(start, goal, walls, grid_size)
 
         if self.plan:
             return self.plan.pop(0)
 
         return None
 
+    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan'):
+        reached = set()
+        frontier = []
+        directions = {
+                'Up': (0, 1),
+                'Right': (1, 0),
+                'Down': (0, -1),
+                'Left': (-1, 0),
+            }
+        if heuristic_type == 'manhattan':
+            h_cost = self.manhattan_distance(start_pos, goal_pos)
+        else:
+            h_cost = self.euclidean_distance(start_pos, goal_pos)
+        g_cost = 0
+        f_cost = g_cost + h_cost
+        heapq.heappush(frontier, (f_cost, g_cost, start_pos, []))
+
+        while frontier:
+            f_cost, g_cost, current_position, path = heapq.heappop(frontier)
+            if current_position == goal_pos:
+                return path
+            reached.add(current_position)
+            for action, (dx, dy) in directions.items():
+                next_position = (
+                    current_position[0] + dx,
+                    current_position[1] + dy
+                )
+                if (
+                    next_position[0] < 0
+                    or next_position[0] >= grid_size[0]
+                    or next_position[1] < 0
+                    or next_position[1] >= grid_size[1]
+                ):
+                    continue
+                if next_position in walls:
+                    continue
+                if next_position in reached:
+                    continue
+                new_path = path + [action]
+                if heuristic_type == 'manhattan':
+                    h_cost = self.manhattan_distance(next_position, goal_pos)
+                else:
+                    h_cost = self.euclidean_distance(next_position, goal_pos)
+                new_g_cost = g_cost + 1
+                new_f_cost = new_g_cost + h_cost
+                heapq.heappush(frontier, (new_f_cost, new_g_cost, next_position, new_path))
+        return None
 
 
 
