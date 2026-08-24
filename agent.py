@@ -2,6 +2,7 @@
 import random
 from collections import deque
 import heapq
+import math
 
 
 class SearchAgent:
@@ -128,6 +129,13 @@ class SearchAgent:
         x = abs(x1 - x2) + abs(y1 - y2)
         return x
 
+    def euclidean_distance(self, pos, goal):
+        x1, y1 = pos
+        x2, y2 = goal
+        x_diff = x1 - x2
+        y_diff = y1 - y2
+        x = math.sqrt((x_diff ** 2) + (y_diff ** 2))
+        return x
 
     def sense_and_act(self, percept):
         if percept['food_here']:
@@ -160,6 +168,9 @@ class SearchAgent:
             return self.plan.pop(0)
 
         return None
+
+
+
 
 class SimpleReflexAgent:
     """Uses only the current percept and stores no history."""
