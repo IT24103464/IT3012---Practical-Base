@@ -122,6 +122,13 @@ class SearchAgent:
                 heapq.heappush(frontier, (new_cost, next_position, new_path)) 
         return None
 
+    def manhattan_distance(self, pos, goal):
+        x1, y1 = pos
+        x2, y2 = goal
+        x = abs(x1 - x2) + abs(y1 - y2)
+        return x
+
+
     def sense_and_act(self, percept):
         if percept['food_here']:
             return 'Suck'
