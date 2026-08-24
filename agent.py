@@ -8,11 +8,13 @@ import math
 class SearchAgent:
     def __init__(self):
         self.plan = []
-        self.active_algo = 'AStar'
+        # self.active_algo = 'BFS'
     
         # self.active_algo = 'DFS'
     
-        # self.active_algo = 'UCS'
+        # self.active_algo = 'UCS'        
+        
+        self.active_algo = 'AStar'
 
     def bfs_search(self, start, goal, walls, grid_size):
         frontier = deque()
