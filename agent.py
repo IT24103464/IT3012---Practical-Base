@@ -3,11 +3,15 @@ import random
 from collections import deque
 import heapq
 import math
+from logic_engine import KnowledgeBase
 
 
 class SearchAgent:
     def __init__(self):
         self.plan = []
+        self.kb = KnowledgeBase()
+        self.kb.tell_rule(['TargetVisible', 'HasDust'], 'SafeToEngage')
+        self.kb.tell_rule(['SafeToEngage', 'BloodseekerMissing'], 'Retreat')
         # self.active_algo = 'BFS'
     
         # self.active_algo = 'DFS'
@@ -167,14 +171,23 @@ class SearchAgent:
                 self.plan = self.ucs_search(start, goal, walls, grid_size)
             
             elif self.active_algo == 'AStar':
-                self.plan = self.astar_search(start, goal, walls, grid_size)
+                # Part 3.3: illustrative facts; later they could come from sensors.
+                tile_facts = {
+                    (1, 0): ['TargetVisible', 'HasDust', 'BloodseekerMissing'],
+                    (0, 1): ['TargetVisible', 'HasDust'],
+                }
+                self.plan = self.astar_search(
+                    start, goal, walls, grid_size, tile_facts=tile_facts
+                )
 
         if self.plan:
             return self.plan.pop(0)
 
         return None
 
-    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan'):
+    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan', tile_facts=None):
+        if tile_facts is None:
+            tile_facts = {}
         reached = set()
         frontier = []
         directions = {
@@ -211,6 +224,13 @@ class SearchAgent:
                 if next_position in walls:
                     continue
                 if next_position in reached:
+                    continue
+                # Parts 3.1–3.2: infer safety separately for each candidate tile.
+                self.kb.clear_facts()
+                for fact in tile_facts.get(next_position, []):
+                    self.kb.tell_fact(fact)
+                self.kb.forward_chain()
+                if 'Retreat' in self.kb.facts:
                     continue
                 new_path = path + [action]
                 if heuristic_type == 'manhattan':
